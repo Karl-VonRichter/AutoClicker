@@ -1,0 +1,63 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build Release
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Publish
+      run: dotnet publish --configuration Release --no-build --output ./publish
+
+    - name: Create ZIP archive
+      run: |
+        cd publish
+        Compress-Archive -Path * -DestinationPath ../AutoClicker-${{ github.ref_name }}.zip
+      shell: pwsh
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          AutoClicker-${{ github.ref_name }}.zip
+        body: |
+          ## Auto Clicker Release ${{ github.ref_name }}
+
+          ### Installation
+          1. Download and extract the ZIP file
+          2. Run `AutoClicker.exe` as Administrator
+
+          ### Features
+          - Non-intrusive background clicking
+          - Global hotkeys (Alt+Backspace to toggle)
+          - System tray integration with status indicator
+          - Customizable click interval (minimum 50ms)
+
+          ### Requirements
+          - Windows OS
+          - .NET 10.0 Runtime or higher
+          - Administrator privileges for global hotkeys
+
+          **Note:** This tool is for legitimate automation purposes. Use responsibly.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
